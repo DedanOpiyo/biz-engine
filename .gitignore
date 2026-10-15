@@ -3,6 +3,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
+*.class
+.mtj.tmp/
+*.jar
+*.war
+*.ear
+*.hsperfdata_*
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -37,3 +43,15 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# Cryptographic Secrets
+*.pem
+private.key
+public.key
+
+#
+.env
+.DS_Store
+logs/
+*.log
+

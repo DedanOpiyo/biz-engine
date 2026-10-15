@@ -1,0 +1,96 @@
+spring:
+  application:
+    name: biz-engine
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/biz_engine}
+    username: ${DB_USERNAME:biz_engine}
+    password: ${DB_PASSWORD:biz_engine}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # Not: ddl-auto: create or ddl-auto: update because database schema belongs to migrations, not Hibernate silently changing production structure.
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${BIZ_OBSERVATION_CONSUMER_GROUP:biz-observation-v1}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: false
+
+logging:
+  pattern:
+    level: "%5p [requestId:%X{requestId:-}]"
+
+# Partner-facing management endpoints require Ed25519 signed requests by default.
+biz:
+  outbox:
+    enabled: ${BIZ_OUTBOX_ENABLED:true}
+    poll-delay-ms: ${BIZ_OUTBOX_POLL_DELAY_MS:1000}
+    batch-size: ${BIZ_OUTBOX_BATCH_SIZE:50}
+    send-timeout-ms: ${BIZ_OUTBOX_SEND_TIMEOUT_MS:3000}
+    max-attempts: ${BIZ_OUTBOX_MAX_ATTEMPTS:10}
+    base-backoff-ms: ${BIZ_OUTBOX_BASE_BACKOFF_MS:1000}
+    max-backoff-ms: ${BIZ_OUTBOX_MAX_BACKOFF_MS:300000}
+    topic: ${BIZ_EVENT_TOPIC:biz.events.v1}
+    dead-letter-topic: ${BIZ_EVENT_DLQ_TOPIC:biz.events.dlq}
+  security:
+    partner-authentication:
+      enabled: ${BIZ_PARTNER_AUTH_ENABLED:true}
+      allowed-clock-skew-seconds: ${BIZ_PARTNER_CLOCK_SKEW_SECONDS:300}
+      max-body-bytes: ${BIZ_PARTNER_MAX_BODY_BYTES:1048576}
+      nonce-cleanup-delay-ms: ${BIZ_PARTNER_NONCE_CLEANUP_DELAY_MS:60000}
+
+  identity:
+    # Development-only fallback. Set a strong, stable secret of at least 32 characters in every real environment.
+    hash-secret: ${BIZ_IDENTITY_HASH_SECRET:local-development-only-change-this-secret}
+  observation:
+    consumer-group: ${BIZ_OBSERVATION_CONSUMER_GROUP:biz-observation-v1}
+    retry-delay-ms: ${BIZ_OBSERVATION_RETRY_DELAY_MS:1000}
+    retry-count: ${BIZ_OBSERVATION_RETRY_COUNT:3}
+    dlq-suffix: ${BIZ_OBSERVATION_DLQ_SUFFIX:.DLQ}
+  trend:
+    aggregation:
+      enabled: ${BIZ_TREND_AGGREGATION_ENABLED:true}
+      fixed-delay-ms: ${BIZ_TREND_AGGREGATION_DELAY_MS:900000}
+
+  insight:
+    generation:
+      enabled: ${BIZ_INSIGHT_GENERATION_ENABLED:true}
+      fixed-delay-ms: ${BIZ_INSIGHT_GENERATION_DELAY_MS:900000}
